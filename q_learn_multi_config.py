@@ -7,12 +7,12 @@ from dataclasses import dataclass
 @dataclass
 class SorterConfig:
     """Configuration for the Q-learning sorter."""
-    array_length: int = 8          # Length of arrays to sort
-    num_episodes: int = 1000       # Number of training episodes
+    array_length: int = 10         # Length of arrays to sort
+    num_episodes: int = 2000       # Number of training episodes
     gamma: float = 0.95           # Discount factor
     alpha: float = 0.1            # Learning rate
     epsilon: float = 0.1          # Exploration rate
-    actions_per_step: int = 2      # Number of actions to take in each step
+    actions_per_step: int = 2     # Number of actions to take in each step
     max_steps_per_episode: int = 50  # Maximum steps per episode
     sorted_reward: float = 20.0    # Reward for achieving sorted state
     step_reward_multiplier: float = 2.0  # Multiplier for step-wise improvement
@@ -30,7 +30,8 @@ class QLearningSort:
             self.min_push,
             self.max_push,
             self.reverse_segment,
-            self.cyclic_shift
+            self.cyclic_shift,
+            self.swap_if_needed
         ]
         
         # Generate all possible action combinations
@@ -46,6 +47,14 @@ class QLearningSort:
         arr_copy = arr.copy()
         arr_copy[idx], arr_copy[idx + 1] = arr_copy[idx + 1], arr_copy[idx]
         return arr_copy
+    
+    @staticmethod
+    def swap_if_needed(arr):
+        """Swap two adjacent elements if they are out of order."""
+        idx = np.random.randint(len(arr) - 1)
+        if arr[idx] > arr[idx + 1]:  # Only swap if out of order
+            arr[idx], arr[idx + 1] = arr[idx + 1], arr[idx]
+        return arr
 
     @staticmethod
     def min_push(arr):
@@ -191,7 +200,8 @@ class SortingAnalyzer:
             1: "push minimum to front",
             2: "push maximum to end",
             3: "reverse segment",
-            4: "cyclic shift"
+            4: "cyclic shift",
+            5: "swap if needed"
         }
 
     def action_to_string(self, action_idx):
