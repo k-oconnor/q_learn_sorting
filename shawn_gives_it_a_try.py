@@ -3,6 +3,7 @@ import random
 from collections import defaultdict
 from itertools import product
 from dataclasses import dataclass
+from collections import deque
 
 random.seed(32)
 np.random.seed(32)
@@ -21,8 +22,10 @@ class SorterConfig:
     step_reward_multiplier: float = 2.0  # Multiplier for step-wise improvement
 
 class QLearningSort:
-    def __init__(self, config: SorterConfig):
+    def __init__(self, config: SorterConfig, memory_size=5, penalty=2):
         self.config = config
+        self.history = deque(maxlen=memory_size)
+        self.penalty_weight = penalty
         self.Q = defaultdict(lambda: np.zeros(len(self.ACTION_COMBINATIONS)))
         self.initialize_actions()
 
@@ -44,6 +47,11 @@ class QLearningSort:
             range(len(self.ACTIONS)), 
             repeat=self.config.actions_per_step
         ))
+
+    @staticmethod
+    def prior_disorder_score(arr):
+        """Calculate prior disorder score."""
+        return np.sum(arr[:-1] > arr[1:])
 
     @staticmethod
     def swap_adjacent(arr):
@@ -127,11 +135,14 @@ class QLearningSort:
         """Apply sequence of actions to state."""
         current_state = np.array(state)
         states_visited = [tuple(current_state)]
+        actions_taken = []
         
         for action_idx in action_sequence:
             current_state = self.ACTIONS[action_idx](current_state)
             states_visited.append(tuple(current_state))
+            actions_taken.append(action_idx)
         
+        self.history.append(tuple(actions_taken))
         return tuple(current_state), states_visited
 
     def calculate_reward(self, initial_state, final_state, intermediate_states):
@@ -145,6 +156,12 @@ class QLearningSort:
         # Penalty for visiting same state multiple times
         unique_states = len(set(intermediate_states))
         reward -= (len(intermediate_states) - unique_states)
+
+        # **Penalty for repeating action sequences**
+        if len(self.history) > 1:  # Avoid penalizing first moves
+            last_action = self.history[-1]
+            repeats = sum(1 for past in list(self.history)[:-1] if past == last_action)
+            reward -= self.penalty_weight * repeats  # Higher penalty for repeated sequences
         
         # Bonus for achieving sorted state
         if np.all(np.array(final_state)[:-1] <= np.array(final_state)[1:]):
@@ -160,7 +177,8 @@ class QLearningSort:
             arr = np.random.permutation(self.config.array_length)
             state = tuple(arr)
             total_reward = 0
-            
+            self.history.clear()  # Reset action memory for a new episode
+
             for _ in range(self.config.max_steps_per_episode):
                 action_seq_idx = self.choose_action_sequence(state)
                 action_sequence = self.ACTION_COMBINATIONS[action_seq_idx]
@@ -356,31 +374,6 @@ class SortingAnalyzer:
         # Analyze special cases
         self.analyze_special_cases()
 
-
-def main():
-    # Create a sorter with specific configuration
-    config = SorterConfig(
-        array_length=5,
-        num_episodes=1000,
-        actions_per_step=2
-    )
-    
-    # Initialize and train sorter
-    sorter = QLearningSort(config)
-    sorter.train()
-    
-    # Create analyzer and run analysis
-    analyzer = SortingAnalyzer(sorter)
-    analyzer.run_full_analysis()
-    
-    # Optional: Test the sorter after analysis
-    print("\nTesting learned policy:")
-    sorter.test_policy(num_tests=2)
-
-if __name__ == "__main__":
-    main()
-
-
 def main():
     # Create config for different array lengths
     configs = [
@@ -393,6 +386,9 @@ def main():
         print(f"\nTraining sorter for array length {config.array_length}")
         sorter = QLearningSort(config)
         sorter.train()
+        # Create analyzer and run analysis
+        analyzer = SortingAnalyzer(sorter)
+        analyzer.run_full_analysis()
         print("\nTesting learned policy:")
         sorter.test_policy()
 
