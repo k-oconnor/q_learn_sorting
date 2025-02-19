@@ -35,7 +35,8 @@ class QLearningSort:
             self.reverse_segment,
             self.cyclic_shift,
             self.swap_if_needed,
-            self.swap_2
+            self.swap_2,
+            self.check_each_element_and_swap
         ]
         
         # Generate all possible action combinations
@@ -72,7 +73,15 @@ class QLearningSort:
         if arr[idx] + arr[idx + 1] > arr[idx + 2] + arr[idx + 3]:  # Only swap if out of order
             arr[idx], arr[idx + 1], arr[idx + 2], arr[idx + 3] = arr[idx + 2], arr[idx + 3], arr[idx], arr[idx + 1]
         return arr
+    
+    @staticmethod
+    def check_each_element_and_swap(arr):
+        #Go through each element and swap them if they aren't lined up right
+        for i in range(len(arr)-1):
+            if arr[i] > arr[i+1]:
+                arr[i], arr[i+1] = arr[i+1], arr[i]
 
+        return arr
 
     @staticmethod
     def min_push(arr):
@@ -220,7 +229,8 @@ class SortingAnalyzer:
             3: "reverse segment",
             4: "cyclic shift",
             5: "swap if needed",
-            6: "swap 2"
+            6: "swap 2",
+            7: "swap all"
         }
 
     def action_to_string(self, action_idx):
@@ -376,7 +386,7 @@ def main():
     configs = [
         SorterConfig(array_length=3, num_episodes=500),
         SorterConfig(array_length=5, num_episodes=1000),
-        SorterConfig(array_length=7, num_episodes=2000)
+        SorterConfig(array_length=9, num_episodes=2000)
     ]
     
     for config in configs:
