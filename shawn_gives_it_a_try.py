@@ -22,7 +22,7 @@ class SorterConfig:
     step_reward_multiplier: float = 2.0  # Multiplier for step-wise improvement
 
 class QLearningSort:
-    def __init__(self, config: SorterConfig, memory_size=5, penalty=2):
+    def __init__(self, config: SorterConfig, memory_size=5, penalty=.1):
         self.config = config
         self.history = deque(maxlen=memory_size)
         self.penalty_weight = penalty
@@ -377,9 +377,9 @@ class SortingAnalyzer:
 def main():
     # Create config for different array lengths
     configs = [
-        SorterConfig(array_length=3, num_episodes=500),
-        SorterConfig(array_length=5, num_episodes=1000),
-        SorterConfig(array_length=9, num_episodes=2000)
+        #SorterConfig(array_length=3, num_episodes=500),
+        #SorterConfig(array_length=5, num_episodes=1000),
+        SorterConfig(array_length=8, num_episodes=2500, actions_per_step=2, max_steps_per_episode=75)
     ]
     
     for config in configs:
